@@ -1,30 +1,31 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <title>COVID Policy Timeline Simulator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>COVID Policy + Outcomes Simulator</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <style>
+        :root {
+            --bg: #0b1020;
+            --card: rgba(255, 255, 255, 0.06);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --text: #e8ecff;
+            --muted: rgba(232, 236, 255, 0.75);
+            --pill: rgba(255, 255, 255, 0.10);
+        }
+
         body {
-            font-family: system-ui, Arial, sans-serif;
             margin: 0;
-            background: #0b1020;
-            color: #e8ecff;
-        }
-
-        .card.events a {
-            color: #c9d2ff;
-        }
-
-        .card.events a:hover {
-            opacity: 0.9;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            background: radial-gradient(1200px 800px at 20% 0%, #141b3d 0%, var(--bg) 60%);
+            color: var(--text);
         }
 
         .wrap {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 16px;
+            padding: 18px;
         }
 
         .topbar {
@@ -32,12 +33,42 @@
             flex-wrap: wrap;
             gap: 12px;
             align-items: center;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 14px;
         }
 
-        select, button, input[type="range"] {
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0 0 10px 0;
+            letter-spacing: 0.2px;
+        }
+
+        .pill {
+            display: inline-flex;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--pill);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            font-size: 12px;
+            color: var(--text);
+        }
+
+        select {
+            /* Force readable dropdown text on mobile */
+            background: #ffffff;
+            color: #000000;
+            border: 1px solid rgba(0, 0, 0, 0.22);
+            padding: 10px 12px;
+            border-radius: 12px;
+            outline: none;
+        }
+
+        button, input[type="range"] {
             background: rgba(255, 255, 255, 0.10);
             color: #e8ecff;
             border: 1px solid rgba(255, 255, 255, 0.18);
@@ -52,9 +83,7 @@
             color: #000000;
         }
 
-        button {
-            cursor: pointer;
-        }
+        button { cursor: pointer; }
 
         .grid {
             display: grid;
@@ -64,204 +93,134 @@
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: var(--card);
+            border: 1px solid var(--card-border);
             border-radius: 14px;
             padding: 12px;
         }
 
-        #chart {
-            height: 520px;
-        }
+        #chart { height: 520px; }
 
-        .mini {
-            font-size: 12px;
-            opacity: 0.8;
-        }
+        .mini { font-size: 12px; opacity: 0.8; }
 
-        .row {
+        .muted-btn { opacity: 0.85; }
+
+        .section-title {
             display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 8px;
         }
 
-        .pill {
-            padding: 6px 10px;
-            border-radius: 999px;
+        .event-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .event-date { font-weight: 600; margin-bottom: 6px; }
+
+        .event-item { margin: 4px 0; }
+
+        .kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.10);
             border: 1px solid rgba(255, 255, 255, 0.16);
         }
 
-        .events {
-            max-height: 520px;
-            overflow: auto;
-        }
-
-        .event-card {
-            padding: 10px;
-            border-radius: 12px;
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            margin-bottom: 10px;
-        }
-
-        .event-date {
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
-
-        .event-item {
-            margin: 4px 0;
-            font-size: 13px;
-        }
-
-        .section-title {
-            font-weight: 800;
-            margin: 6px 0 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .muted-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-
-        /* Modal */
-        .modal-backdrop {
+        /* Highlight modal */
+        .backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.55);
+            background: rgba(0,0,0,0.55);
             display: none;
             align-items: center;
             justify-content: center;
-            padding: 14px;
+            padding: 16px;
             z-index: 50;
         }
 
         .modal {
-            width: min(720px, 95vw);
-            background: #0f1630;
-            border: 1px solid rgba(255, 255, 255, 0.14);
+            width: min(720px, 100%);
+            background: #0f1730;
+            border: 1px solid rgba(255,255,255,0.18);
             border-radius: 16px;
             padding: 14px;
-            box-shadow: 0 18px 60px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 14px 40px rgba(0,0,0,0.45);
         }
 
-        .modal h3 {
-            margin: 0 0 8px 0;
-        }
-
-        .modal .close-row {
+        .modal-head {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
-        .modal .content {
-            margin-top: 10px;
-            line-height: 1.5;
-            font-size: 14px;
+        .modal-head h2 {
+            margin: 0;
+            font-size: 16px;
         }
 
-        .modal .list {
-            margin: 10px 0 0 0;
-            padding-left: 16px;
+        .xbtn {
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 10px;
+            padding: 8px 10px;
         }
 
-        .modal .list li {
-            margin: 6px 0;
-        }
-
-        .badge {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            background: rgba(255, 255, 255, 0.08);
-        }
+        ul.list { margin: 8px 0 0 18px; padding: 0; }
+        ul.list li { margin: 4px 0; }
 
         @media (max-width: 980px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-
-            #chart {
-                height: 440px;
-            }
+            .grid { grid-template-columns: 1fr; }
+            #chart { height: 440px; }
         }
 
         @media (max-width: 600px) {
-            .wrap {
-                padding: 12px;
-            }
-
-            /* Stack controls nicely and make them full-width */
-            .topbar {
-                gap: 10px;
-            }
-
-            .topbar .row {
-                width: 100%;
-            }
-
-            #countrySelect, #speedSelect, #btnNextHighlight {
-                width: 100%;
-            }
-
-            /* Bigger tap targets + prevent iOS zoom */
+            .wrap { padding: 12px; }
+            .topbar { gap: 10px; }
+            .topbar .row { width: 100%; }
+            #countrySelect, #speedSelect, #btnNextHighlight { width: 100%; }
             select, button, input[type="range"] {
                 font-size: 16px;
                 padding: 12px 14px;
                 border-radius: 14px;
             }
-
-            #chart {
-                height: 360px;
-            }
+            #chart { height: 360px; }
         }
-
     </style>
 </head>
 <body>
 <div class="wrap">
-    <div class="close-row" style="display:flex; justify-content: space-between; align-items:center;">
-        <div>
-            <h2 style="margin: 0 0 4px 0;">COVID Policy Timeline Player</h2>
-            <div class="mini">Interactive playback of reported COVID trends with policy change cards (OxCGRT). For
-                education & storytelling, not causal inference.
-            </div>
-        </div>
-        <button class="muted-btn" id="btnGlossary">What do these policies mean?</button>
-    </div>
+    <h1>COVID Policy + Outcomes Explorer (Interactive)</h1>
 
-    <div class="topbar" style="margin-top: 12px;">
+    <div class="topbar">
         <div class="row">
             <span class="pill">Country</span>
             <select id="countrySelect"></select>
-        </div>
-
-        <div class="row">
-            <button id="btnPrev">⏮</button>
-            <button id="btnPlay">▶</button>
-            <button id="btnNext">⏭</button>
 
             <span class="pill">Speed</span>
             <select id="speedSelect">
                 <option value="1">1×</option>
-                <option value="4">4×</option>
-                <option value="10">10×</option>
+                <option value="2">2×</option>
+                <option value="5">5×</option>
+                <option value="10" selected>10×</option>
                 <option value="30">30×</option>
             </select>
         </div>
 
         <div class="row">
-            <label class="mini" sty:contentReference[oaicite:8]{index=8}gn-items:center; gap:8px;">
-            <input id="showVax" type="checkbox" checked/>
-            Show vaccination (% fully)
+            <button id="btnPlay">Play</button>
+            <button class="muted-btn" id="btnReset">Reset</button>
+
+            <label class="mini" style="display:flex; align-items:center; gap:8px;">
+                <input id="showVax" type="checkbox" checked/>
+                Show vaccination (% fully)
             </label>
 
             <label class="mini" style="display:flex; align-items:center; gap:8px;">
@@ -279,27 +238,35 @@
 
     <div class="grid">
         <div class="card">
+            <div class="section-title">
+                <div>Chart</div>
+                <div class="mini">Hover for policy levels + vaccination</div>
+            </div>
             <div id="chart"></div>
-            <div class="mini" id="disclaimer"></div>
+            <div class="mini" style="margin-top: 10px;">
+                Tip: Use <span class="kbd">Next highlight</span> to jump to major policy shifts, acceleration, or vaccination milestones.
+            </div>
         </div>
 
         <div class="card events">
             <div class="section-title">
-                <div>Current policy status</div>
-                <span class="badge" id="policyBadge">—</span>
+                <div>Events & Policy Context</div>
+                <div class="mini">Auto-generated from policy diffs</div>
             </div>
-            <div id="policyStatus" class="mini" style="margin-bottom: 12px;"></div>
 
-            <div class="section-title">
-                <div>Policy / News Cards</div>
-                <div class="mini">Auto-updates with date</div>
+            <div class="pill" id="policyBadge">—</div>
+            <div id="policyStatus" class="mini" style="margin-top: 10px; line-height: 1.45;"></div>
+
+            <div class="section-title" style="margin-top: 12px;">
+                <div>Policy-change cards</div>
+                <div class="mini">for the selected date</div>
             </div>
             <div id="eventsContainer" style="margin-top: 10px;"></div>
+
             <hr style="border:0; border-top:1px solid rgba(255,255,255,0.12); margin:14px 0;">
 
             <div class="section-title">
-                <div>Sources (Vancouver)</div>
-                <div class="mini">Policy indicators + Stringency + case/death series</div>
+                <div>Sources</div>
             </div>
 
             <ol class="mini" style="padding-left: 18px; margin: 8px 0 0 0; line-height: 1.45;">
@@ -312,243 +279,65 @@
                     Oxford COVID-19 Government Response Tracker. Calculation and presentation of the Stringency Index
                     4.0 [Internet].
                     Oxford: Blavatnik School of Government, University of Oxford; 2020 Apr 28 [cited 2026 Jan 31].
-                    Available from: <a
-                        href="https://www.bsg.ox.ac.uk/sites/default/files/Calculation%20and%20presentation%20of%20the%20Stringency%20Index.pdf"
-                        target="_blank" rel="noopener">https://www.bsg.ox.ac.uk/sites/default/files/Calculation%20and%20presentation%20of%20the%20Stringency%20Index.pdf</a>
+                    Available from:
+                    <a href="https://www.bsg.ox.ac.uk/sites/default/files/Calculation%20and%20presentation%20of%20the%20Stringency%20Index.pdf"
+                       target="_blank" rel="noopener">
+                        https://www.bsg.ox.ac.uk/sites/default/files/Calculation%20and%20presentation%20of%20the%20Stringency%20Index.pdf
+                    </a>
                 </li>
                 <li>
-                    Our World in Data. Data on COVID-19 (coronavirus) by Our World in Data: dataset documentation
-                    [Internet].
+                    Our World in Data. Data on COVID-19 (coronavirus) by Our World in Data: dataset documentation [Internet].
                     Oxford: Our World in Data; [cited 2026 Jan 31].
-                    Available from: <a href="https://docs.owid.io/projects/covid/en/latest/dataset.html" target="_blank"
-                                       rel="noopener">https://docs.owid.io/projects/covid/en/latest/dataset.html</a>
+                    Available from:
+                    <a href="https://docs.owid.io/projects/covid/en/latest/dataset.html" target="_blank" rel="noopener">
+                        https://docs.owid.io/projects/covid/en/latest/dataset.html
+                    </a>
                 </li>
                 <li>
-                    Oxford COVID-19 Government Response Tracker. covid-policy-dataset [Internet].
-                    GitHub; 2023 Jun 1 [cited 2026 Jan 31].
-                    Available from: <a href="https://github.com/OxCGRT/covid-policy-dataset" target="_blank"
-                                       rel="noopener">https://github.com/OxCGRT/covid-policy-dataset</a>
+                    Our World in Data. COVID-19 dataset (owid-covid-data.csv) [Internet].
+                    Oxford: Our World in Data; [cited 2026 Jan 31].
+                    Available from:
+                    <a href="https://github.com/owid/covid-19-data/tree/master/public/data" target="_blank" rel="noopener">
+                        https://github.com/owid/covid-19-data/tree/master/public/data
+                    </a>
                 </li>
             </ol>
-
         </div>
     </div>
 </div>
 
-<!-- Glossary Modal -->
-<div class="modal-backdrop" id="glossaryBackdrop">
+<div class="backdrop" id="highlightBackdrop">
     <div class="modal">
-        <div class="close-row">
-            <h3 style="margin:0;">Policy glossary (plain language)</h3>
-            <button class="muted-btn" id="btnCloseGlossary">Close</button>
-        </div>
-        <div class="content" id="glossaryContent"></div>
-    </div>
-</div>
-
-<!-- Highlight Modal -->
-<div class="modal-backdrop" id="highlightBackdrop">
-    <div class="modal">
-        <div class="close-row">
-            <div style="display:flex; gap:8px; align-items:center;">
-                <h3 style="margin:0;" id="hlTitle">Highlight</h3>
-                <span class="badge" id="hlDate">—</span>
+        <div class="modal-head">
+            <div>
+                <h2 id="hlTitle">Highlight</h2>
+                <div class="mini" id="hlDate">—</div>
             </div>
-            <button class="muted-btn" id="btnCloseHighlight">Close</button>
+            <button class="xbtn" id="hlClose">Close</button>
         </div>
-        <div class="content" id="hlBody"></div>
-        <div style="margin-top: 12px; display:flex; gap:10px; justify-content:flex-end;">
-            <button class="muted-btn" id="btnResume">Resume</button>
-        </div>
+        <div id="hlBody" class="mini" style="margin-top:10px; line-height:1.5;"></div>
     </div>
 </div>
 
 <script>
-    let chart = echarts.init(document.getElementById("chart"));
-
-    let state = {
+    const state = {
         dates: [],
         series: {},
-        eventsByDate: new Map(),
-        highlightsByDate: new Map(),
         meta: {policy_levels: {}, policy_labels: {}, stringency_explainer: ""},
+        eventsByDate: new Map(),      // date -> [text...]
+        highlightsByDate: new Map(),  // date -> [highlight objects]
+        shownHighlights: new Set(),
         idx: 0,
         playing: false,
         timer: null,
-        shownHighlights: new Set(),
     };
 
-    function setPlaying(on) {
-        state.playing = on;
-        document.getElementById("btnPlay").textContent = on ? "⏸" : "▶";
-        if (state.timer) {
-            clearInterval(state.timer);
-            state.timer = null;
-        }
-        if (!on) return;
+    const chart = echarts.init(document.getElementById("chart"));
 
-        const speed = parseInt(document.getElementById("speedSelect").value, 10);
-        state.timer = setInterval(() => {
-            step(1 * speed);
-        }, 250);
+    function escapeHtml(s) {
+        return String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
     }
-
-    function step(delta) {
-        if (!state.dates.length) return;
-        let next = state.idx + delta;
-        if (next < 0) next = 0;
-        if (next >= state.dates.length) next = state.dates.length - 1;
-        state.idx = next;
-        document.getElementById("dateSlider").value = String(state.idx);
-        renderFrame(true);
-    }
-
-    function renderFrame(fromPlayback = false) {
-        const d = state.dates[state.idx];
-        document.getElementById("dateLabel").textContent = d || "—";
-
-        const opt = buildOption();
-        opt.series.forEach(s => {
-            if (s.type === "line" && (
-  s.name === "Cases (7d avg)":contentReference[oaicite:21]{index=21}vg)" ||
-  s.name === "Stringency" ||
-  s.name === "Fully vaccinated (%)"
-)) {
-  s.markLine = { symbol: ["none", "none"], data: [{ xAxis: d }] };
-}
-        });
-        chart.setOption(opt, true);
-
-        renderEvents(d);
-        renderPolicyStatus(d);
-
-        // Auto-pause on highlights
-        const autoPause = document.getElementById("autoPause").checked;
-        if (fromPlayback && state.playing && autoPause) {
-            const highlights = state.highlightsByDate.get(d) || [];
-            if (highlights.length) {
-                const key = d + "::" + highlights.map(h => h.type + h.title).join("|");
-                if (!state.shownHighlights.has(key)) {
-                    state.shownHighlights.add(key);
-                    setPlaying(false);
-                    showHighlightModal(d, highlights);
-                }
-            }
-        }
-    }
-
-    function renderEvents(dateStr) {
-        const box = document.getElementById("eventsContainer");
-        box.innerHTML = "";
-
-        const items = state.eventsByDate.get(dateStr) || [];
-        if (!items.length) {
-            box.innerHTML = `<div class="mini">No policy-change card on this date.</div>`;
-            return;
-        }
-
-        const card = document.createElement("div");
-        card.className = "event-card";
-        card.innerHTML = `<div class="event-date">${dateStr}</div>` + items.map(x => `<div class="event-item">• ${escapeHtml(x)}</div>`).join("");
-        box.appendChild(card);
-    }
-
-    function policyLevelText(key, val) {
-        if (val === null || val === undefined) return "—";
-        const levels = (state.meta.policy_levels || {})[key] || null;
-        if (!levels) return String(val);
-        const desc = levels[String(val)] ?? levels[val] ?? "Level";
-        return `${val} (${desc})`;
-    }
-
-    function renderPolicyStatus(dateStr) {
-        const s = state.series;
-        const i = state.idx;
-        const labels = state.meta.policy_labels || {};
-        const badge = document.getElementById("policyBadge");
-        const box = document.getElementById("policyStatus");
-
-        const st = s.stringency?.[i];
-        badge.textContent = (st !== null && st !== undefined) ? `Stringency: ${Number(st).toFixed(1)}` : "—";
-
-        const lines = [];
-        lines.push(`<div><b>Stringency</b>: ${(st !== null && st !== undefined) ? Number(st).toFixed(1) : "—"} <span class="mini">— ${escapeHtml(state.meta.stringency_explainer || "")}</span></div>`);
-        lines.push(`<div>• ${escapeHtml(labels.c1_school_closing || "School closing")} : ${escapeHtml(policyLevelText("c1_school_closing", s.school?.[i]))}</div>`);
-        lines.push(`<div>• ${escapeHtml(labels.c2_workplace_closing || "Workplace closing")} : ${escapeHtml(policyLevelText("c2_workplace_closing", s.work?.[i]))}</div>`);
-        lines.push(`<div>• ${escapeHtml(labels.c6_stay_at_home || "Stay-at-home")} : ${escapeHtml(policyLevelText("c6_stay_at_home", s.stayhome?.[i]))}</div>`);
-        lines.push(`<div>• ${escapeHtml(labels.c8_international_travel_controls || "Travel controls")} : ${escapeHtml(policyLevelText("c8_international_travel_controls", s.travel?.[i]))}</div>`);
-        lines.push(`<div>• ${escapeHtml(labels.h6_facial_coverings || "Face coverings")} : ${escapeHtml(policyLevelText("h6_facial_coverings", s.masks?.[i]))}</div>`);
-
-        box.innerHTML = lines.join("");
-    }
-
-    function escapeHtml(str) {
-        return String(str).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
-    }
-
-    function buildOption() {
-  const d = state.dates;
-  const s = state.series;
-  const showVax = document.:contentReference[oaicite:19]{index=19}cked ?? true;
-
-  const yAxes = [
-    { type: "value", axisLabel: { color: "#c9d2ff" }, name: "Cases/Deaths" },
-    { type: "value", axisLabel: { color: "#c9d2ff" }, name: "Policy", min: 0, max: 100 },
-  ];
-
-  const series = [
-    { name: "Cases (7d avg)", type: "line", yAxisIndex: 0, showSymbol: false, data: s.cases || [] },
-    { name: "Deaths (7d avg)", type: "line", yAxisIndex: 0, showSymbol: false, data: s.deaths || [] },
-    { name: "Stringency", type: "line", yAxisIndex: 1, showSymbol: false, data: s.stringency || [] },
-  ];
-
-  if (showVax) {
-    yAxes.push({ type: "value", axisLabel: { color: "#c9d2ff" }, name: "Vaccination (%)", min: 0, max: 100 });
-    series.push({
-      name: "Fully vaccinated (%)",
-      type: "line",
-      yAxisIndex: 2,
-      showSymbol: false,
-      data: s.vax_full || [],
-    });
-  }
-
-  return {
-    animation: false,
-    tooltip: {
-      trigger: "axis",
-      formatter: (params) => {
-        const idx = params?.[0]?.dataIndex ?? state.idx;
-        const dateStr = d[idx] || "—";
-        const cases = s.cases?.[idx];
-        const deaths = s.deaths?.[idx];
-        const st = s.stringency?.[idx];
-        const vax = s.vax_full?.[idx];
-
-        const lines = [];
-        lines.push(`<b>${escapeHtml(dateStr)}</b>`);
-        lines.push(`Cases (7d avg): <b>${cases ?? "—"}</b>`);
-        lines.push(`Deaths (7d avg): <b>${deaths ?? "—"}</b>`);
-        lines.push(`Stringency: <b>${(st !== null && st !== undefined) ? Number(st).toFixed(1) : "—"}</b>`);
-        if (showVax) lines.push(`Fully vaccinated (%): <b>${(vax !== null && vax !== undefined) ? Number(vax).toFixed(1) : "—"}</b>`);
-
-        lines.push(`<div style="margin-top:6px; opacity:.9;"><b>Policy levels</b></div>`);
-        lines.push(`School closing: ${escapeHtml(policyLevelText("c1_school_closing", s.school?.[idx]))}`);
-        lines.push(`Stay-at-home: ${escapeHtml(policyLevelText("c6_stay_at_home", s.stayhome?.[idx]))}`);
-        lines.push(`Intl travel: ${escapeHtml(policyLevelText("c8_international_travel_controls", s.travel?.[idx]))}`);
-        lines.push(`Face coverings: ${escapeHtml(policyLevelText("h6_facial_coverings", s.masks?.[idx]))}`);
-
-        return lines.join("<br/>");
-      }
-    },
-    legend: { textStyle: { color: "#e8ecff" } },
-    grid: { left: 40, right: 25, top: 45, bottom: 50 },
-    xAxis: { type: "category", data: d, axisLabel: { color: "#c9d2ff" } },
-    yAxis: yAxes,
-    dataZoom: [{ type: "inside", start: 0, end: 100 }, { type: "slider", start: 0, end: 100 }],
-    series: series,
-  };
-}
 
     async function loadCountries() {
         const res = await fetch("/api/countries/");
@@ -601,25 +390,209 @@
         slider.max = String(Math.max(0, state.dates.length - 1));
         slider.value = String(state.idx);
 
-        document.getElementById("disclaimer").textContent = data.disclaimer || "";
-        chart.setOption(buildOption(), true);
         renderFrame(false);
+    }
+
+    function policyLevelText(key, val) {
+        if (val === null || val === undefined) return "—";
+        const levels = (state.meta.policy_levels || {})[key] || null;
+        if (!levels) return String(val);
+        const desc = levels[String(val)] ?? levels[val] ?? "Level";
+        return `${val} (${desc})`;
+    }
+
+    function renderPolicyStatus() {
+        const s = state.series;
+        const i = state.idx;
+        const labels = state.meta.policy_labels || {};
+        const badge = document.getElementById("policyBadge");
+        const box = document.getElementById("policyStatus");
+
+        const st = s.stringency?.[i];
+        badge.textContent = (st !== null && st !== undefined) ? `Stringency: ${Number(st).toFixed(1)}` : "—";
+
+        const lines = [];
+        lines.push(`<div><b>Stringency</b>: ${(st !== null && st !== undefined) ? Number(st).toFixed(1) : "—"}</div>`);
+        lines.push(`<div class="mini" style="margin-top:6px;">${escapeHtml(state.meta.stringency_explainer || "")}</div>`);
+        lines.push(`<hr style="border:0; border-top:1px solid rgba(255,255,255,0.10); margin:10px 0;">`);
+
+        const items = [
+            ["c1_school_closing", s.school?.[i]],
+            ["c2_workplace_closing", s.work?.[i]],
+            ["c6_stay_at_home", s.stayhome?.[i]],
+            ["c8_international_travel_controls", s.travel?.[i]],
+            ["h6_facial_coverings", s.masks?.[i]],
+        ];
+
+        for (const [k, v] of items) {
+            lines.push(`<div><b>${escapeHtml(labels[k] || k)}</b>: ${escapeHtml(policyLevelText(k, v))}</div>`);
+        }
+
+        box.innerHTML = lines.join("");
+    }
+
+    function renderEvents(dateStr) {
+        const box = document.getElementById("eventsContainer");
+        box.innerHTML = "";
+
+        const items = state.eventsByDate.get(dateStr) || [];
+        if (!items.length) {
+            box.innerHTML = `<div class="mini">No policy-change card on this date.</div>`;
+            return;
+        }
+
+        const card = document.createElement("div");
+        card.className = "event-card";
+        card.innerHTML = `<div class="event-date">${dateStr}</div>` + items.map(x => `<div class="event-item">• ${escapeHtml(x)}</div>`).join("");
+        box.appendChild(card);
+    }
+
+    function buildOption() {
+        const d = state.dates;
+        const s = state.series;
+        const showVax = (document.getElementById("showVax")?.checked ?? true);
+
+        const yAxes = [
+            { type: "value", axisLabel: { color: "#c9d2ff" }, name: "Cases/Deaths" },
+            { type: "value", axisLabel: { color: "#c9d2ff" }, name: "Policy", min: 0, max: 100 },
+        ];
+
+        const series = [
+            { name: "Cases (7d avg)", type: "line", yAxisIndex: 0, showSymbol: false, data: s.cases || [] },
+            { name: "Deaths (7d avg)", type: "line", yAxisIndex: 0, showSymbol: false, data: s.deaths || [] },
+            { name: "Stringency", type: "line", yAxisIndex: 1, showSymbol: false, data: s.stringency || [] },
+        ];
+
+        if (showVax) {
+            yAxes.push({ type: "value", axisLabel: { color: "#c9d2ff" }, name: "Vaccination (%)", min: 0, max: 100 });
+            series.push({
+                name: "Fully vaccinated (%)",
+                type: "line",
+                yAxisIndex: 2,
+                showSymbol: false,
+                data: s.vax_full || [],
+            });
+        }
+
+        return {
+            animation: false,
+            tooltip: {
+                trigger: "axis",
+                formatter: (params) => {
+                    const idx = params?.[0]?.dataIndex ?? state.idx;
+                    const dateStr = d[idx] || "—";
+                    const cases = s.cases?.[idx];
+                    const deaths = s.deaths?.[idx];
+                    const st = s.stringency?.[idx];
+                    const vax = s.vax_full?.[idx];
+
+                    const lines = [];
+                    lines.push(`<b>${escapeHtml(dateStr)}</b>`);
+                    lines.push(`Cases (7d avg): <b>${cases ?? "—"}</b>`);
+                    lines.push(`Deaths (7d avg): <b>${deaths ?? "—"}</b>`);
+                    lines.push(`Stringency: <b>${(st !== null && st !== undefined) ? Number(st).toFixed(1) : "—"}</b>`);
+                    if (showVax) lines.push(`Fully vaccinated (%): <b>${(vax !== null && vax !== undefined) ? Number(vax).toFixed(1) : "—"}</b>`);
+
+                    lines.push(`<div style="margin-top:6px; opacity:.9;"><b>Policy levels</b></div>`);
+                    lines.push(`School closing: ${escapeHtml(policyLevelText("c1_school_closing", s.school?.[idx]))}`);
+                    lines.push(`Stay-at-home: ${escapeHtml(policyLevelText("c6_stay_at_home", s.stayhome?.[idx]))}`);
+                    lines.push(`Intl travel: ${escapeHtml(policyLevelText("c8_international_travel_controls", s.travel?.[idx]))}`);
+                    lines.push(`Face coverings: ${escapeHtml(policyLevelText("h6_facial_coverings", s.masks?.[idx]))}`);
+
+                    return lines.join("<br/>");
+                }
+            },
+            legend: { textStyle: { color: "#e8ecff" } },
+            grid: { left: 50, right: 20, top: 35, bottom: 40 },
+            xAxis: {
+                type: "category",
+                data: d,
+                axisLabel: { color: "#c9d2ff", formatter: (v) => String(v).slice(0, 10) }
+            },
+            yAxis: yAxes,
+            series: series
+        };
+    }
+
+    function renderFrame(fromPlayback = false) {
+        const d = state.dates[state.idx];
+        document.getElementById("dateLabel").textContent = d || "—";
+
+        const opt = buildOption();
+        opt.series.forEach(s => {
+            if (s.type === "line" && (
+                s.name === "Cases (7d avg)" ||
+                s.name === "Stringency" ||
+                s.name === "Fully vaccinated (%)"
+            )) {
+                s.markLine = { symbol: ["none", "none"], data: [{ xAxis: d }] };
+            }
+        });
+        chart.setOption(opt, true);
+
+        renderEvents(d);
+        renderPolicyStatus(d);
+
+        const autoPause = document.getElementById("autoPause").checked;
+        if (fromPlayback && state.playing && autoPause) {
+            const highlights = state.highlightsByDate.get(d) || [];
+            if (highlights.length) {
+                const key = d + "::" + highlights.map(h => h.type + h.title).join("|");
+                if (!state.shownHighlights.has(key)) {
+                    state.shownHighlights.add(key);
+                    setPlaying(false);
+                    showHighlightModal(d, highlights);
+                }
+            }
+        }
+    }
+
+    function nextIdx(step = 1) {
+        return Math.min(state.dates.length - 1, Math.max(0, state.idx + step));
+    }
+
+    function tick() {
+        if (!state.playing) return;
+
+        const speed = Number(document.getElementById("speedSelect").value || "10");
+        const step = Math.max(1, Math.round(speed / 10));
+        const nxt = nextIdx(step);
+
+        if (nxt === state.idx) {
+            setPlaying(false);
+            return;
+        }
+
+        state.idx = nxt;
+        document.getElementById("dateSlider").value = String(state.idx);
+        renderFrame(true);
+    }
+
+    function setPlaying(on) {
+        state.playing = on;
+        document.getElementById("btnPlay").textContent = on ? "Pause" : "Play";
+        if (state.timer) clearInterval(state.timer);
+        state.timer = on ? setInterval(tick, 220) : null;
     }
 
     function showHighlightModal(dateStr, highlights) {
         const backdrop = document.getElementById("highlightBackdrop");
         document.getElementById("hlDate").textContent = dateStr;
-        document.getElementById("hlTitle").textContent = "Highlight";
+        document.getElementById("hlTitle").textContent = (highlights?.length || 0) > 1 ? "Highlights" : "Highlight";
 
         const parts = [];
-        const icon =
-            h.type === "policy" ? "📜" :
-                (h.type === "cases" ? "📈" :
-                    (h.type === "deaths" ? "⚠️" : "💉"));
-
-        for (const h of highlights) {
-            const icon = h.type === "policy" ? "📜" : (h.type === "cases" ? "📈" : "⚠️");
-            parts.push(`<div style="margin-bottom:10px;"><b>${icon} ${escapeHtml(h.title)}</b><ul class="list">${(h.details || []).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>`);
+        for (const h of (highlights || [])) {
+            const icon =
+                h.type === "policy" ? "📜" :
+                    (h.type === "cases" ? "📈" :
+                        (h.type === "deaths" ? "⚠️" :
+                            (h.type === "vax" ? "💉" : "⭐")));
+            parts.push(
+                `<div style="margin-bottom:10px;">
+                    <b>${icon} ${escapeHtml(h.title || "")}</b>
+                    ${h.details && h.details.length ? `<ul class="list">${h.details.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}
+                 </div>`
+            );
         }
         document.getElementById("hlBody").innerHTML = parts.join("");
 
@@ -630,98 +603,50 @@
         document.getElementById("highlightBackdrop").style.display = "none";
     }
 
-    function openGlossary() {
-        const b = document.getElementById("glossaryBackdrop");
-        const levels = state.meta.policy_levels || {};
-        const labels = state.meta.policy_labels || {};
-        const blocks = [];
-
-        blocks.push(`<div class="mini"><b>Stringency</b>: ${escapeHtml(state.meta.stringency_explainer || "")}</div>`);
-        blocks.push(`<hr style="border:0; border-top:1px solid rgba(255,255,255,0.12); margin:12px 0;">`);
-
-        function renderLevels(key) {
-            const map = levels[key] || {};
-            const items = Object.keys(map).sort((a, b) => Number(a) - Number(b)).map(k => `<li><b>${k}</b>: ${escapeHtml(map[k])}</li>`).join("");
-            return `<div style="margin-bottom:12px;"><b>${escapeHtml(labels[key] || key)}</b><ul class="list">${items}</ul></div>`;
-        }
-
-        blocks.push(renderLevels("c1_school_closing"));
-        blocks.push(renderLevels("c2_workplace_closing"));
-        blocks.push(renderLevels("c6_stay_at_home"));
-        blocks.push(renderLevels("c8_international_travel_controls"));
-        blocks.push(renderLevels("h6_facial_coverings"));
-        blocks.push(`<div class="mini">Reminder: these indices describe reported policy strictness, not compliance or effectiveness.</div>`);
-
-        document.getElementById("glossaryContent").innerHTML = blocks.join("");
-        b.style.display = "flex";
-    }
-
-    function closeGlossary() {
-        document.getElementById("glossaryBackdrop").style.display = "none";
-    }
-
     function jumpToNextHighlight() {
-        if (!state.dates.length) return;
-        for (let j = state.idx + 1; j < state.dates.length; j++) {
-            const d = state.dates[j];
+        const start = state.idx + 1;
+        for (let i = start; i < state.dates.length; i++) {
+            const d = state.dates[i];
             if ((state.highlightsByDate.get(d) || []).length) {
-                state.idx = j;
+                state.idx = i;
                 document.getElementById("dateSlider").value = String(state.idx);
                 renderFrame(false);
-                showHighlightModal(d, state.highlightsByDate.get(d));
+                showHighlightModal(d, state.highlightsByDate.get(d) || []);
                 return;
             }
         }
-        alert("No more highlights ahead for this country.");
     }
 
+    // --- Wire UI ---
     document.getElementById("btnPlay").addEventListener("click", () => setPlaying(!state.playing));
-    document.getElementById("btnPrev").addEventListener("click", () => {
-        setPlaying(false);
-        step(-1);
-    });
-    document.getElementById("btnNext").addEventListener("click", () => {
-        setPlaying(false);
-        step(1);
-    });
-    document.getElementById("speedSelect").addEventListener("change", () => {
-        if (state.playing) setPlaying(true);
-    });
-
-    document.getElementById("dateSlider").addEventListener("input", (e) => {
-        setPlaying(false);
-        state.idx = parseInt(e.target.value, 10) || 0;
+    document.getElementById("btnReset").addEventListener("click", () => {
+        state.idx = 0;
+        document.getElementById("dateSlider").value = "0";
         renderFrame(false);
     });
 
-    document.getElementById("countrySelect").addEventListener("change", (e) => {
-        loadSeries(e.target.value);
+    document.getElementById("countrySelect").addEventListener("change", async (e) => {
+        await loadSeries(e.target.value);
     });
 
-    document.getElementById("btnGlossary").addEventListener("click", openGlossary);
-    document.getElementById("btnCloseGlossary").addEventListener("click", closeGlossary);
-    document.getElementById("glossaryBackdrop").addEventListener("click", (e) => {
-        if (e.target.id === "glossaryBackdrop") closeGlossary();
+    document.getElementById("dateSlider").addEventListener("input", (e) => {
+        state.idx = Number(e.target.value);
+        renderFrame(false);
     });
 
-    document.getElementById("btnNextHighlight").addEventListener("click", () => {
-        setPlaying(false);
-        jumpToNextHighlight();
-    });
-
-    document.getElementById("btnCloseHighlight").addEventListener("click", closeHighlightModal);
-    document.getElementById("btnResume").addEventListener("click", () => {
-        closeHighlightModal();
-        setPlaying(true);
-    });
+    document.getElementById("btnNextHighlight").addEventListener("click", () => jumpToNextHighlight());
+    document.getElementById("hlClose").addEventListener("click", () => closeHighlightModal());
     document.getElementById("highlightBackdrop").addEventListener("click", (e) => {
         if (e.target.id === "highlightBackdrop") closeHighlightModal();
     });
 
+    document.getElementById("showVax").addEventListener("change", () => renderFrame(false));
+
+    // Init
     (async function init() {
         await loadCountries();
         const iso = document.getElementById("countrySelect").value;
-        if (iso) await loadSeries(iso);
+        await loadSeries(iso);
     })();
 </script>
 </body>
